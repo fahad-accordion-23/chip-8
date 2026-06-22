@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wpedantic -Werror -std=c99
+CFLAGS = -Wall -Wpedantic -Werror -Wsign-conversion -Wconversion
 BUILD_DIR = build
 
 all: $(BUILD_DIR)/main

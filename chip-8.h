@@ -5,11 +5,13 @@
 
 #define DISPLAY_WIDTH  64
 #define DISPLAY_HEIGHT 32
+#define WIDTH_BYTES    (DISPLAY_WIDTH / 8)
+#define HEIGHT_BYTES   (DISPLAY_HEIGHT)
 #define MEMORY_SIZE    4096
 #define STACK_SIZE     16
 
 typedef struct {
-    uint8_t display[DISPLAY_WIDTH * DISPLAY_HEIGHT];
+    uint8_t display[WIDTH_BYTES * HEIGHT_BYTES];
     uint8_t memory[MEMORY_SIZE];
 
     uint16_t stack[STACK_SIZE];
