@@ -27,8 +27,9 @@ typedef struct {
     uint16_t PC;
 } Chip_8;
 
-void init(Chip_8 *chip_8);
-void load_program(Chip_8 *chip_8, const char *file_path);
-void start(Chip_8 *chip_8);
+void CHIP8_init(Chip_8 *machine);
+void CHIP8_load(Chip_8 *machine, const char *file_path);
+void CHIP8_tick(Chip_8 *machine);
+void CHIP8_render(Chip_8 *machine);
 
 #endif // !CHIP_8
