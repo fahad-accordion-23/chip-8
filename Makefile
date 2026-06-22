@@ -2,9 +2,9 @@ CC = gcc
 CFLAGS = -Wall -Wpedantic -Werror -Wsign-conversion -Wconversion
 BUILD_DIR = build
 
-all: $(BUILD_DIR)/main
+all: $(BUILD_DIR)/chip-8-run
 
-$(BUILD_DIR)/main: $(BUILD_DIR)/main.o $(BUILD_DIR)/chip-8.o
+$(BUILD_DIR)/chip-8-run: $(BUILD_DIR)/main.o $(BUILD_DIR)/chip-8.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 $(BUILD_DIR)/main.o: main.c chip-8.h | $(BUILD_DIR)

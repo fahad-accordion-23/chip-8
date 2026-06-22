@@ -41,7 +41,7 @@ void CHIP8_load(Chip_8 *machine, const char *file_path) {
     FILE *file = fopen(file_path, "rb");
 
     if (!file) {
-        fprintf(stderr, "Failed to open file: %s", file_path);
+        fprintf(stderr, "Failed to open file: %s\n", file_path);
         exit(1);
     }
 
