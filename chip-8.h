@@ -27,9 +27,18 @@ typedef struct {
     uint16_t PC;
 } Chip_8;
 
+/* Initialize the Chip_8 struct */
 void CHIP8_init(Chip_8 *machine);
+
+/* Load a program to run */
 void CHIP8_load(Chip_8 *machine, const char *file_path);
+
+/* Perform one fetch, execute, and decode cycle */
 void CHIP8_tick(Chip_8 *machine);
-void CHIP8_render(Chip_8 *machine);
+
+/* Decrement the timers
+ * Call 60 times per second
+ */
+void CHIP8_decrement_timers(Chip_8 *machine);
 
 #endif // !CHIP_8

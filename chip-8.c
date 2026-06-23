@@ -209,9 +209,8 @@ void CHIP8_tick(Chip_8 *machine) {
                     machine->V[x]   = machine->V[x] << 1;
                 }
 
-                default: {
+                default:
                     goto invalid_instruction;
-                }
             }
 
             break;
@@ -426,24 +425,8 @@ invalid_instruction:
     exit(1);
 }
 
-void CHIP8_render(Chip_8 *machine) {
-    /* NOTE: this rendering method is temporary */
-    printf("\x1B[2J\x1B[H");
-
-    for (int i = 0; i < HEIGHT_BYTES; i++) {
-        for (int j = 0; j < WIDTH_BYTES; j++) {
-
-            /* for each bit */
-            for (int l = sizeof(uint8_t) * 8 - 1; l >= 0; l--) {
-                int a = (machine->display[i * WIDTH_BYTES + j] >> l) & 1 ;
-
-                if (a == 0)
-                    printf(" ");
-                else
-                    printf("#");
-            }
-
-        }
-        printf("\n");
-    }
+void CHIP8_decrement_timers(Chip_8 *machine) {
+    machine->DT -= 1;
+    machine->ST -= 1;
 }
+

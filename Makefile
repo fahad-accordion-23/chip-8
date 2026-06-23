@@ -1,11 +1,12 @@
 CC = gcc
-CFLAGS = -Wall -Wpedantic -Werror -Wsign-conversion -Wconversion
+CFLAGS = -Wall -Wpedantic -Werror -Wsign-conversion -Wconversion $(shell pkg-config --cflags sdl3)
+LDLIBS = $(shell pkg-config --libs sdl3)
 BUILD_DIR = build
 
 all: $(BUILD_DIR)/chip-8-run
 
 $(BUILD_DIR)/chip-8-run: $(BUILD_DIR)/main.o $(BUILD_DIR)/chip-8.o
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
 
 $(BUILD_DIR)/main.o: main.c chip-8.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c main.c -o $@
