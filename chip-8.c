@@ -69,86 +69,189 @@ void CHIP8_tick(Chip_8 *machine) {
 
     /* DECODE & EXECUTE */
     switch (type) {
-        case 0x0:
+        case 0x0: {
+            // 00E0 - CLS
+            if (kk == 0xE0) {
+                memset(machine->display, 0, sizeof(machine->display));
+            }
 
-        // 00E0 - CLS
-        if (kk == 0xE0) {
-            // printf("CLS\n");
-            memset(machine->display, 0, sizeof(machine->display));
+            // 00EE - RET
+            else if (kk == 0xEE) {
+                machine->PC = machine->stack[machine->SP];
+                machine->SP -= 1;
+            }
+
+            // 0nnn - SYS addr
+            else ;
+
+            break;
         }
-
-        // 00EE - RET
-        else if (kk == 0xEE)
-            ;// printf("RET\n");
-
-        // 0nnn - SYS addr
-        else
-            ;// printf("SYS addr\n");
-
-        break;
 
         // 1nnn - JP addr
-        case 0x1:
-        // printf("JP addr\n");
-        machine->PC = nnn;
+        case 0x1: {
+            machine->PC = nnn;
 
-        break;
+            break;
+        }
 
-        case 0x2:
-        // printf("CALL addr\n");
-        break;
+        // 2nnn - CALL addr
+        case 0x2: {
+            machine->SP += 1;
+            machine->stack[machine->SP] = machine->PC;
+            machine->PC = nnn;
 
-        case 0x3:
-        // printf("SE Vx, byte\n");
-        break;
+            break;
+        };
 
-        case 0x4:
-        // printf("SNE Vx, byte\n");
-        break;
+        // 3xkk - SE Vx, byte
+        case 0x3: {
+            if (machine->V[x] == kk)
+                machine->PC += 2;
 
-        case 0x5:
-        // printf("SE Vx, Vy\n");
-        break;
+            break;
+        }
+
+        // 4xkk - SNE Vx, byte
+        case 0x4: {
+            if (machine->V[x] != kk)
+                machine->PC += 2;
+
+            break;
+        }
+
+        // 5xy0 - SE Vx, Vy
+        case 0x5: {
+            if (n != 0)
+                goto invalid_instruction;
+
+            if (machine->V[x] == machine->V[y])
+                machine->PC += 2;
+
+            break;
+        }
 
         // 6xkk - LD Vx, byte
-        case 0x6:
-        // printf("LD Vx, byte\n");
-        machine->V[x] = kk;
+        case 0x6: {
+            machine->V[x] = kk;
 
-        break;
+            break;
+        }
 
         // 7xnn - ADD Vx, byte
-        case 0x7:
-        // printf("ADD Vx, byte\n");
-        machine->V[x] = machine->V[x] + kk;
+        case 0x7: {
+            machine->V[x] = machine->V[x] + kk;
 
-        break;
-
-        case 0x8:
-        {
+            break;
         }
-        break;
 
-        case 0x9:
-        break;
+        case 0x8: {
+            switch (n) {
+                // 8xy0 - LD Vx, Vy
+                case 0x0: {
+                    machine->V[x] = machine->V[y];
+
+                    break;
+                }
+
+                // 8xy1 - OR Vx, Vy
+                case 0x1: {
+                    machine->V[x] = machine->V[x] | machine->V[y];
+
+                    break;
+                }
+
+                // 8xy2 - AND Vx, Vy
+                case 0x2: {
+                    machine->V[x] = machine->V[x] & machine->V[y];
+
+                    break;
+                }
+
+                // 8xy3 - XOR Vx, Vy
+                case 0x3: {
+                    machine->V[x] = machine->V[x] ^ machine->V[y];
+
+                    break;
+                }
+
+                // 8xy4 - ADD Vx, Vy
+                case 0x4: {
+                    uint16_t result = machine->V[x] + machine->V[y];
+                    machine->V[x]   = (uint8_t) result;
+                    machine->V[0xF] = (result > 255) ? 1 : 0;
+
+                    break;
+                }
+
+                // 8xy5 - SUB Vx, Vy
+                case 0x5: {
+                    machine->V[0xF] = (machine->V[x] > machine->V[y]) ? 1 : 0;
+                    machine->V[x]   = machine->V[x] - machine->V[y];
+
+                    break;
+                }
+
+                // 8xy6 - SHR Vx {, Vy}
+                case 0x6: {
+                    machine->V[0xF] = (machine->V[x] & 1) ? 1 : 0;
+                    machine->V[x]   = machine->V[x] >> 1;
+                }
+
+                // 8xy7 - SUBN Vx, Vy
+                case 0x7: {
+                    machine->V[0xF] = (machine->V[x] > machine->V[y]) ? 1 : 0;
+                    machine->V[x]   = machine->V[x] - machine->V[y];
+                }
+
+                // 8xyE - SHL Vx {, Vy}
+                case 0xE: {
+                    machine->V[0xF] = (machine->V[x] & 0x80) ? 1 : 0;
+                    machine->V[x]   = machine->V[x] << 1;
+                }
+
+                default: {
+                    goto invalid_instruction;
+                }
+            }
+
+            break;
+        }
+
+        // 9xy0 - SNE Vx, Vy
+        case 0x9: {
+            if (n != 0x0)
+                goto invalid_instruction;
+
+            if (machine->V[x] != machine->V[y])
+                machine->PC += 2;
+
+            break;
+        }
 
         // Annn - LD I, addr
-        case 0xA:
-        // printf("LD I, addr\n");
-        machine->I = nnn;
+        case 0xA: {
+            machine->I = nnn;
 
-        break;
+            break;
+        }
 
-        case 0xB:
-        break;
+        // Bnnn - JP V0, addr
+        case 0xB: {
+            machine->PC = machine->V[0] + nnn;
 
-        case 0xC:
-        break;
+            break;
+        }
+
+        // Cxkk - RND Vx, byte
+        case 0xC: {
+            uint8_t rand_int = (uint8_t) (rand() % 256) & kk;
+            machine->V[x]    = rand_int;
+
+            break;
+        }
 
         // Dxyn - DRW Vx, Vy, nibble
-        case 0xD:
-        // printf("DRW Vx, Vy, nibble\n");
-        {
+        case 0xD: {
             uint8_t cx = machine->V[x];
             uint8_t cy = machine->V[y];
 
@@ -172,24 +275,119 @@ void CHIP8_tick(Chip_8 *machine) {
             }
             printf("\n");
 
+            break;
         }
 
-        break;
+        case 0xE: {
+            switch (kk) {
+                // Ex9E - SKP Vx
+                case 0x9E: {
+                    // TODO: implement key down stuff
 
-        case 0xE:
-        {
-        }
-        break;
+                    break;
+                }
 
-        case 0xF:
-        {
+                // ExA1 - SKNP Vx
+                case 0xA1: {
+                    // TODO: implement if key up stuff
+
+                    break;
+                }
+
+                default:
+                    goto invalid_instruction;
+            }
+
+            break;
         }
+
+        case 0xF: {
+            switch (kk) {
+                // Fx07 - LD Vx, DT
+                case 0x07: {
+                    // TODO: implement
+
+                    break;
+                }
+
+                case 0x0A: {
+                    // TODO: implement
+
+                    break;
+                }
+
+                // Fx15 - LD DT, Vx
+                case 0x15: {
+                    // TODO: implement;
+
+                    break;
+                }
+
+                // Fx18 - LD ST, Vx
+                case 0x18: {
+                    // TODO: implement;
+
+                    break;
+                }
+
+                // Fx1E - ADD I, Vx
+                case 0x1E: {
+                    // TODO: implement;
+
+                    break;
+                }
+
+                // Fx29 - LD F, Vx
+                case 0x29: {
+                    // TODO: implement;
+
+                    break;
+                }
+
+                // Fx33 - LD B, Vx
+                case 0x33: {
+                    // TODO: implement;
+
+                    break;
+                }
+
+                // Fx55 - LD [I], Vx
+                case 0x55: {
+                    // TODO: implement;
+
+                    break;
+                }
+
+                // Fx65 - LD Vx, [I]
+                case 0x65: {
+                    // TODO: implement;
+
+                    break;
+                }
+
+                default:
+                    goto invalid_instruction;
+            }
+
         break;
+        }
 
         default:
-        fprintf(stderr, "Invalid instruction: %04X. Exitting...\n", instruction);
-        exit(1);
+            goto invalid_instruction;
     }
+
+    return;
+
+invalid_instruction:
+    fprintf(stderr, "Invalid instruction: %04X\n"
+                    "type: %01X\n"
+                    "x: %01X\n"
+                    "y: %01X\n"
+                    "n: %01X\n"
+                    "kk: %02X\n"
+                    "nnn: %03X\n"
+                    "Exiting...\n", instruction, type, x, y, n, kk, nnn);
+    exit(1);
 }
 
 void CHIP8_render(Chip_8 *machine) {
