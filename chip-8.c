@@ -305,62 +305,98 @@ void CHIP8_tick(Chip_8 *machine) {
             switch (kk) {
                 // Fx07 - LD Vx, DT
                 case 0x07: {
-                    // TODO: implement
+                    machine->V[x] = machine->DT;
 
                     break;
                 }
 
                 case 0x0A: {
-                    // TODO: implement
+                    // TODO: implement wait for key press
 
                     break;
                 }
 
                 // Fx15 - LD DT, Vx
                 case 0x15: {
-                    // TODO: implement;
+                    machine->DT = machine->V[x];
 
                     break;
                 }
 
                 // Fx18 - LD ST, Vx
                 case 0x18: {
-                    // TODO: implement;
+                    machine->ST = machine->V[x];
 
                     break;
                 }
 
                 // Fx1E - ADD I, Vx
                 case 0x1E: {
-                    // TODO: implement;
+                    machine->I = machine->I + machine->V[x];
 
                     break;
                 }
 
                 // Fx29 - LD F, Vx
                 case 0x29: {
-                    // TODO: implement;
+                    uint8_t ch = machine->V[x];
+
+                    switch (ch) {
+                        case '0': machine->I =  0; break;
+                        case '1': machine->I =  6; break;
+                        case '2': machine->I = 12; break;
+                        case '3': machine->I = 18; break;
+                        case '4': machine->I = 24; break;
+                        case '5': machine->I = 30; break;
+                        case '6': machine->I = 36; break;
+                        case '7': machine->I = 42; break;
+                        case '8': machine->I = 48; break;
+                        case '9': machine->I = 54; break;
+                        case 'A': machine->I = 60; break;
+                        case 'B': machine->I = 66; break;
+                        case 'C': machine->I = 72; break;
+                        case 'D': machine->I = 78; break;
+                        case 'E': machine->I = 84; break;
+                        case 'F': machine->I = 90; break;
+                    }
 
                     break;
                 }
 
                 // Fx33 - LD B, Vx
                 case 0x33: {
-                    // TODO: implement;
+                    uint8_t num = machine->V[x];
+
+                    machine->memory[machine->I + 2] = num % 10;
+                    num /= 10;
+
+                    machine->memory[machine->I + 1] = num % 10;
+                    num /= 10;
+
+                    machine->memory[machine->I + 0] = num % 10;
+                    num /= 10;
 
                     break;
                 }
 
                 // Fx55 - LD [I], Vx
                 case 0x55: {
-                    // TODO: implement;
+                    for (int i = 0; i <= x; i++)
+                        machine->memory[machine->I + i] = machine->V[i];
+
+                    // TODO: allow to change behaviour
+                    // older interpreters used to increment register I
 
                     break;
                 }
 
                 // Fx65 - LD Vx, [I]
                 case 0x65: {
-                    // TODO: implement;
+                    for (int i = 0; i <= x; i++)
+                        machine->V[i] = machine->memory[machine->I + i];
+
+                    // TODO: allow to change behaviour
+                    // older interpreters used to increment register I
 
                     break;
                 }
