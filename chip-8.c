@@ -1,4 +1,5 @@
 #include "chip-8.h"
+#include <SDL3/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -185,28 +186,42 @@ void CHIP8_tick(Chip_8 *machine) {
 
                 // 8xy5 - SUB Vx, Vy
                 case 0x5: {
-                    machine->V[0xF] = (machine->V[x] > machine->V[y]) ? 1 : 0;
+                    uint8_t Vf = (machine->V[x] >= machine->V[y]) ? 1 : 0;
+
                     machine->V[x]   = machine->V[x] - machine->V[y];
+                    machine->V[0xF] = Vf;
 
                     break;
                 }
 
                 // 8xy6 - SHR Vx {, Vy}
                 case 0x6: {
-                    machine->V[0xF] = (machine->V[x] & 1) ? 1 : 0;
+                    uint8_t Vf = (machine->V[x] & 1) ? 1 : 0;
+
                     machine->V[x]   = machine->V[x] >> 1;
+                    machine->V[0xF] = Vf;
+
+                    break;
                 }
 
                 // 8xy7 - SUBN Vx, Vy
                 case 0x7: {
-                    machine->V[0xF] = (machine->V[x] > machine->V[y]) ? 1 : 0;
-                    machine->V[x]   = machine->V[x] - machine->V[y];
+                    uint8_t Vf = (machine->V[y] >= machine->V[x]) ? 1 : 0;
+
+                    machine->V[x]   = machine->V[y] - machine->V[x];
+                    machine->V[0xF] = Vf;
+
+                    break;
                 }
 
                 // 8xyE - SHL Vx {, Vy}
                 case 0xE: {
-                    machine->V[0xF] = (machine->V[x] & 0x80) ? 1 : 0;
+                    uint8_t Vf = (machine->V[x] & 0x80) ? 1 : 0;
+
                     machine->V[x]   = machine->V[x] << 1;
+                    machine->V[0xF] = Vf;
+
+                    break;
                 }
 
                 default:
@@ -272,26 +287,64 @@ void CHIP8_tick(Chip_8 *machine) {
                 machine->display[location_r] ^= there;
 
             }
-            printf("\n");
 
             break;
         }
 
         case 0xE: {
+            const bool *key_states = SDL_GetKeyboardState(NULL);
+
             switch (kk) {
                 // Ex9E - SKP Vx
                 case 0x9E: {
-                    // TODO: implement key down stuff
+                    switch (machine->V[x]) {
+                        case 0x0: if (key_states[SDL_SCANCODE_X]) goto skip; break;
+                        case 0x1: if (key_states[SDL_SCANCODE_1]) goto skip; break;
+                        case 0x2: if (key_states[SDL_SCANCODE_2]) goto skip; break;
+                        case 0x3: if (key_states[SDL_SCANCODE_3]) goto skip; break;
+                        case 0x4: if (key_states[SDL_SCANCODE_Q]) goto skip; break;
+                        case 0x5: if (key_states[SDL_SCANCODE_W]) goto skip; break;
+                        case 0x6: if (key_states[SDL_SCANCODE_E]) goto skip; break;
+                        case 0x7: if (key_states[SDL_SCANCODE_A]) goto skip; break;
+                        case 0x8: if (key_states[SDL_SCANCODE_S]) goto skip; break;
+                        case 0x9: if (key_states[SDL_SCANCODE_D]) goto skip; break;
+                        case 0xA: if (key_states[SDL_SCANCODE_Z]) goto skip; break;
+                        case 0xB: if (key_states[SDL_SCANCODE_C]) goto skip; break;
+                        case 0xC: if (key_states[SDL_SCANCODE_1]) goto skip; break;
+                        case 0xD: if (key_states[SDL_SCANCODE_R]) goto skip; break;
+                        case 0xE: if (key_states[SDL_SCANCODE_F]) goto skip; break;
+                        case 0xF: if (key_states[SDL_SCANCODE_V]) goto skip; break;
+                    }
 
                     break;
                 }
 
                 // ExA1 - SKNP Vx
                 case 0xA1: {
-                    // TODO: implement if key up stuff
+                    switch (machine->V[x]) {
+                        case 0x0: if (!key_states[SDL_SCANCODE_X]) goto skip; break;
+                        case 0x1: if (!key_states[SDL_SCANCODE_1]) goto skip; break;
+                        case 0x2: if (!key_states[SDL_SCANCODE_2]) goto skip; break;
+                        case 0x3: if (!key_states[SDL_SCANCODE_3]) goto skip; break;
+                        case 0x4: if (!key_states[SDL_SCANCODE_Q]) goto skip; break;
+                        case 0x5: if (!key_states[SDL_SCANCODE_W]) goto skip; break;
+                        case 0x6: if (!key_states[SDL_SCANCODE_E]) goto skip; break;
+                        case 0x7: if (!key_states[SDL_SCANCODE_A]) goto skip; break;
+                        case 0x8: if (!key_states[SDL_SCANCODE_S]) goto skip; break;
+                        case 0x9: if (!key_states[SDL_SCANCODE_D]) goto skip; break;
+                        case 0xA: if (!key_states[SDL_SCANCODE_Z]) goto skip; break;
+                        case 0xB: if (!key_states[SDL_SCANCODE_C]) goto skip; break;
+                        case 0xC: if (!key_states[SDL_SCANCODE_1]) goto skip; break;
+                        case 0xD: if (!key_states[SDL_SCANCODE_R]) goto skip; break;
+                        case 0xE: if (!key_states[SDL_SCANCODE_F]) goto skip; break;
+                        case 0xF: if (!key_states[SDL_SCANCODE_V]) goto skip; break;
+                    }
 
                     break;
                 }
+
+skip:           machine->PC += 2;
+                break;
 
                 default:
                     goto invalid_instruction;

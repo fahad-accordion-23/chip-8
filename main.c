@@ -6,8 +6,8 @@
 
 #define WINDOW_WIDTH  640
 #define WINDOW_HEIGHT 320
-#define TIMER_SPEED   60  // 60Hz
-#define TICK_SPEED    700 // 700Hz
+#define TIMER_SPEED   600  // 60Hz
+#define TICK_SPEED    7000 // 700Hz
 
 int main(int argc, char **argv) {
     const char *file_path;
@@ -74,8 +74,10 @@ int main(int argc, char **argv) {
     float time_elapsed_since_last_decrement = 0.0f;
 
     while (1) {
+        Uint64 now          = SDL_GetPerformanceCounter();
         Uint64 elapsed_time = SDL_GetPerformanceCounter() - last_time;
         float dt = (float) elapsed_time / (float) SDL_GetPerformanceFrequency();
+        last_time = now;
 
         time_elapsed_since_last_tick += dt;
         time_elapsed_since_last_decrement += dt;
