@@ -157,21 +157,30 @@ void CHIP8_tick(Chip_8 *machine) {
 
                 // 8xy1 - OR Vx, Vy
                 case 0x1: {
-                    machine->V[x] = machine->V[x] | machine->V[y];
+                    uint8_t Vf = 0;
+
+                    machine->V[x]   = machine->V[x] | machine->V[y];
+                    machine->V[0xF] = Vf;
 
                     break;
                 }
 
                 // 8xy2 - AND Vx, Vy
                 case 0x2: {
-                    machine->V[x] = machine->V[x] & machine->V[y];
+                    uint8_t Vf = 0;
+
+                    machine->V[x]   = machine->V[x] & machine->V[y];
+                    machine->V[0xF] = Vf;
 
                     break;
                 }
 
                 // 8xy3 - XOR Vx, Vy
                 case 0x3: {
-                    machine->V[x] = machine->V[x] ^ machine->V[y];
+                    uint8_t Vf = 0;
+
+                    machine->V[x]   = machine->V[x] ^ machine->V[y];
+                    machine->V[0xF] = Vf;
 
                     break;
                 }
