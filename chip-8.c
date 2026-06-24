@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 void CHIP8_init(Chip_8 *machine) {
     memset(machine->display, 0, sizeof(machine->display));
@@ -362,9 +363,32 @@ skip:           machine->PC += 2;
                     break;
                 }
 
+                // Fx0A - LD Vx, K
                 case 0x0A: {
-                    // TODO: implement wait for key press
+                    const bool *key_states = SDL_GetKeyboardState(NULL);
+                    uint8_t key;
 
+                    if (key_states[SDL_SCANCODE_X]) { key = 0x0; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_1]) { key = 0x1; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_2]) { key = 0x2; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_3]) { key = 0x3; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_Q]) { key = 0x4; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_W]) { key = 0x5; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_E]) { key = 0x6; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_A]) { key = 0x7; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_S]) { key = 0x8; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_D]) { key = 0x9; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_Z]) { key = 0xA; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_C]) { key = 0xB; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_1]) { key = 0xC; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_R]) { key = 0xD; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_F]) { key = 0xE; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_V]) { key = 0xF; goto key_pressed; }
+
+                    machine->PC -= 2;
+                    break;
+
+key_pressed:        machine->V[x] = key;
                     break;
                 }
 
