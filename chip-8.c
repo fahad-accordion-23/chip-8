@@ -311,7 +311,7 @@ void CHIP8_tick(Chip_8 *machine) {
                         case 0x9: if (key_states[SDL_SCANCODE_D]) goto skip; break;
                         case 0xA: if (key_states[SDL_SCANCODE_Z]) goto skip; break;
                         case 0xB: if (key_states[SDL_SCANCODE_C]) goto skip; break;
-                        case 0xC: if (key_states[SDL_SCANCODE_1]) goto skip; break;
+                        case 0xC: if (key_states[SDL_SCANCODE_4]) goto skip; break;
                         case 0xD: if (key_states[SDL_SCANCODE_R]) goto skip; break;
                         case 0xE: if (key_states[SDL_SCANCODE_F]) goto skip; break;
                         case 0xF: if (key_states[SDL_SCANCODE_V]) goto skip; break;
@@ -335,7 +335,7 @@ void CHIP8_tick(Chip_8 *machine) {
                         case 0x9: if (!key_states[SDL_SCANCODE_D]) goto skip; break;
                         case 0xA: if (!key_states[SDL_SCANCODE_Z]) goto skip; break;
                         case 0xB: if (!key_states[SDL_SCANCODE_C]) goto skip; break;
-                        case 0xC: if (!key_states[SDL_SCANCODE_1]) goto skip; break;
+                        case 0xC: if (!key_states[SDL_SCANCODE_4]) goto skip; break;
                         case 0xD: if (!key_states[SDL_SCANCODE_R]) goto skip; break;
                         case 0xE: if (!key_states[SDL_SCANCODE_F]) goto skip; break;
                         case 0xF: if (!key_states[SDL_SCANCODE_V]) goto skip; break;
@@ -380,7 +380,7 @@ skip:           machine->PC += 2;
                     if (key_states[SDL_SCANCODE_D]) { key = 0x9; goto key_pressed; }
                     if (key_states[SDL_SCANCODE_Z]) { key = 0xA; goto key_pressed; }
                     if (key_states[SDL_SCANCODE_C]) { key = 0xB; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_1]) { key = 0xC; goto key_pressed; }
+                    if (key_states[SDL_SCANCODE_4]) { key = 0xC; goto key_pressed; }
                     if (key_states[SDL_SCANCODE_R]) { key = 0xD; goto key_pressed; }
                     if (key_states[SDL_SCANCODE_F]) { key = 0xE; goto key_pressed; }
                     if (key_states[SDL_SCANCODE_V]) { key = 0xF; goto key_pressed; }
