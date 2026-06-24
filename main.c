@@ -68,6 +68,8 @@ int main(int argc, char **argv) {
 
     CHIP8_init(&machine);
     CHIP8_load(&machine, file_path);
+    CHIP8_set_vf_reset(&machine, true);
+    CHIP8_set_increment_index(&machine, true);
 
     Uint64 last_time = SDL_GetPerformanceCounter();
     float time_elapsed_since_last_tick = 0.0f;

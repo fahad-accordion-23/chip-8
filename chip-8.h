@@ -2,6 +2,7 @@
 #define CHIP_8
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define DISPLAY_WIDTH  64
 #define DISPLAY_HEIGHT 32
@@ -11,6 +12,7 @@
 #define STACK_SIZE     16
 
 typedef struct {
+    /* INTERNALS */
     uint8_t display[WIDTH_BYTES * HEIGHT_BYTES];
     uint8_t memory[MEMORY_SIZE];
 
@@ -25,10 +27,21 @@ typedef struct {
 
     uint8_t SP;
     uint16_t PC;
+
+    /* CONFIGURATION RELATED */
+    bool vf_reset;
+    bool increment_index;
+
 } Chip_8;
 
 /* Initialize the Chip_8 struct */
 void CHIP8_init(Chip_8 *machine);
+
+/* Set the vf_reset quirk */
+void CHIP8_set_vf_reset(Chip_8 *machine, bool value);
+
+/* Set the increment_index quirk */
+void CHIP8_set_increment_index(Chip_8 *machine, bool value);
 
 /* Load a program to run */
 void CHIP8_load(Chip_8 *machine, const char *file_path);

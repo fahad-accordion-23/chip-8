@@ -16,6 +16,9 @@ void CHIP8_init(Chip_8 *machine) {
     machine->SP = 0;
     machine->PC = 0;
 
+    machine->vf_reset = false;
+    machine->increment_index = false;
+
     /* load fonts */
     uint8_t sprites[] = {
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -37,6 +40,14 @@ void CHIP8_init(Chip_8 *machine) {
     };
 
     memcpy(&machine->memory[0x0], sprites, sizeof(sprites));
+}
+
+void CHIP8_set_vf_reset(Chip_8 *machine, bool value) {
+    machine->vf_reset = true;
+}
+
+void CHIP8_set_increment_index(Chip_8 *machine, bool value) {
+    machine->increment_index = true;
 }
 
 void CHIP8_load(Chip_8 *machine, const char *file_path) {
@@ -160,7 +171,9 @@ void CHIP8_tick(Chip_8 *machine) {
                     uint8_t Vf = 0;
 
                     machine->V[x]   = machine->V[x] | machine->V[y];
-                    machine->V[0xF] = Vf;
+
+                    if (machine->vf_reset)
+                        machine->V[0xF] = Vf;
 
                     break;
                 }
@@ -170,7 +183,9 @@ void CHIP8_tick(Chip_8 *machine) {
                     uint8_t Vf = 0;
 
                     machine->V[x]   = machine->V[x] & machine->V[y];
-                    machine->V[0xF] = Vf;
+
+                    if (machine->vf_reset)
+                        machine->V[0xF] = Vf;
 
                     break;
                 }
@@ -180,7 +195,9 @@ void CHIP8_tick(Chip_8 *machine) {
                     uint8_t Vf = 0;
 
                     machine->V[x]   = machine->V[x] ^ machine->V[y];
-                    machine->V[0xF] = Vf;
+
+                    if (machine->vf_reset)
+                        machine->V[0xF] = Vf;
 
                     break;
                 }
@@ -466,19 +483,28 @@ key_pressed:        machine->V[x] = key;
 
                 // Fx55 - LD [I], Vx
                 case 0x55: {
-                    for (int i = 0; i <= x; i++)
-                        machine->memory[machine->I + i] = machine->V[i];
-
-                    // TODO: allow to change behaviour
-                    // older interpreters used to increment register I
+                    for (int i = 0; i <= x; i++) {
+                        if (machine->increment_index) {
+                            machine->memory[machine->I] = machine->V[i];
+                            machine->I += 1;
+                        } else {
+                            machine->memory[machine->I + i] = machine->V[i];
+                        }
+                    }
 
                     break;
                 }
 
                 // Fx65 - LD Vx, [I]
                 case 0x65: {
-                    for (int i = 0; i <= x; i++)
-                        machine->V[i] = machine->memory[machine->I + i];
+                    for (int i = 0; i <= x; i++) {
+                        if (machine->increment_index) {
+                            machine->V[i] = machine->memory[machine->I];
+                            machine->I += 1;
+                        } else {
+                            machine->V[i] = machine->memory[machine->I + i];
+                        }
+                    }
 
                     // TODO: allow to change behaviour
                     // older interpreters used to increment register I
