@@ -19,11 +19,7 @@ make
 chip-8-run [PATH TO YOUR PROGRAM]
 ```
 
-*Note that very few instructions have been implemented. Your programs will most likely not work on this.*
-
-### Example
-
-Right now, the interpreter can only run the IBM logo program. You may find and download from anywhere on the web. It can be run as follows:
+For example:
 
 ```
 chip-8-run ibm-logo-ch.8
