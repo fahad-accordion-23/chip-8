@@ -5,6 +5,29 @@
 #include <string.h>
 #include <stdbool.h>
 
+SDL_Scancode get_scancode_from_key(uint8_t key) {
+    switch (key) {
+        case 0x0: return SDL_SCANCODE_X;
+        case 0x1: return SDL_SCANCODE_1;
+        case 0x2: return SDL_SCANCODE_2;
+        case 0x3: return SDL_SCANCODE_3;
+        case 0x4: return SDL_SCANCODE_Q;
+        case 0x5: return SDL_SCANCODE_W;
+        case 0x6: return SDL_SCANCODE_E;
+        case 0x7: return SDL_SCANCODE_A;
+        case 0x8: return SDL_SCANCODE_S;
+        case 0x9: return SDL_SCANCODE_D;
+        case 0xA: return SDL_SCANCODE_Z;
+        case 0xB: return SDL_SCANCODE_C;
+        case 0xC: return SDL_SCANCODE_4;
+        case 0xD: return SDL_SCANCODE_R;
+        case 0xE: return SDL_SCANCODE_F;
+        case 0xF: return SDL_SCANCODE_V;
+
+        default : return SDL_SCANCODE_UNKNOWN;
+    }
+}
+
 void CHIP8_init(Chip_8 *machine) {
     memset(machine->display, 0, sizeof(machine->display));
     memset(machine->memory, 0, sizeof(machine->memory));
@@ -79,23 +102,25 @@ void CHIP8_tick(Chip_8 *machine) {
     uint8_t  kk   = (instruction & 0x00FFu);
     uint16_t nnn  = (instruction & 0x0FFFu);
 
-
     /* DECODE & EXECUTE */
     switch (type) {
         case 0x0: {
-            // 00E0 - CLS
-            if (kk == 0xE0) {
-                memset(machine->display, 0, sizeof(machine->display));
-            }
+            switch (nnn) {
+                // 00E0 - CLS
+                case 0x0E0:
+                    memset(machine->display, 0, sizeof(machine->display));
+                    break;
 
-            // 00EE - RET
-            else if (kk == 0xEE) {
-                machine->PC = machine->stack[machine->SP];
-                machine->SP -= 1;
-            }
+                // 00EE - RET
+                case 0x0EE:
+                    machine->PC  = machine->stack[machine->SP];
+                    machine->SP -= 1;
+                    break;
 
-            // 0nnn - SYS addr
-            else ;
+                // 0nnn - SYS addr
+                default:
+                    break;
+            }
 
             break;
         }
@@ -312,7 +337,6 @@ void CHIP8_tick(Chip_8 *machine) {
                 int location_r = (cy + i) * WIDTH_BYTES + ((cx + 8) / 8);
                 machine->display[location_l] ^= here;
                 machine->display[location_r] ^= there;
-
             }
 
             break;
@@ -320,27 +344,14 @@ void CHIP8_tick(Chip_8 *machine) {
 
         case 0xE: {
             const bool *key_states = SDL_GetKeyboardState(NULL);
+            SDL_Scancode key = get_scancode_from_key(machine->V[x]);
+            bool key_pressed = key_states[key];
 
             switch (kk) {
                 // Ex9E - SKP Vx
                 case 0x9E: {
-                    switch (machine->V[x]) {
-                        case 0x0: if (key_states[SDL_SCANCODE_X]) goto skip; break;
-                        case 0x1: if (key_states[SDL_SCANCODE_1]) goto skip; break;
-                        case 0x2: if (key_states[SDL_SCANCODE_2]) goto skip; break;
-                        case 0x3: if (key_states[SDL_SCANCODE_3]) goto skip; break;
-                        case 0x4: if (key_states[SDL_SCANCODE_Q]) goto skip; break;
-                        case 0x5: if (key_states[SDL_SCANCODE_W]) goto skip; break;
-                        case 0x6: if (key_states[SDL_SCANCODE_E]) goto skip; break;
-                        case 0x7: if (key_states[SDL_SCANCODE_A]) goto skip; break;
-                        case 0x8: if (key_states[SDL_SCANCODE_S]) goto skip; break;
-                        case 0x9: if (key_states[SDL_SCANCODE_D]) goto skip; break;
-                        case 0xA: if (key_states[SDL_SCANCODE_Z]) goto skip; break;
-                        case 0xB: if (key_states[SDL_SCANCODE_C]) goto skip; break;
-                        case 0xC: if (key_states[SDL_SCANCODE_4]) goto skip; break;
-                        case 0xD: if (key_states[SDL_SCANCODE_R]) goto skip; break;
-                        case 0xE: if (key_states[SDL_SCANCODE_F]) goto skip; break;
-                        case 0xF: if (key_states[SDL_SCANCODE_V]) goto skip; break;
+                    if (key_pressed) {
+                        machine->PC += 2;
                     }
 
                     break;
@@ -348,30 +359,12 @@ void CHIP8_tick(Chip_8 *machine) {
 
                 // ExA1 - SKNP Vx
                 case 0xA1: {
-                    switch (machine->V[x]) {
-                        case 0x0: if (!key_states[SDL_SCANCODE_X]) goto skip; break;
-                        case 0x1: if (!key_states[SDL_SCANCODE_1]) goto skip; break;
-                        case 0x2: if (!key_states[SDL_SCANCODE_2]) goto skip; break;
-                        case 0x3: if (!key_states[SDL_SCANCODE_3]) goto skip; break;
-                        case 0x4: if (!key_states[SDL_SCANCODE_Q]) goto skip; break;
-                        case 0x5: if (!key_states[SDL_SCANCODE_W]) goto skip; break;
-                        case 0x6: if (!key_states[SDL_SCANCODE_E]) goto skip; break;
-                        case 0x7: if (!key_states[SDL_SCANCODE_A]) goto skip; break;
-                        case 0x8: if (!key_states[SDL_SCANCODE_S]) goto skip; break;
-                        case 0x9: if (!key_states[SDL_SCANCODE_D]) goto skip; break;
-                        case 0xA: if (!key_states[SDL_SCANCODE_Z]) goto skip; break;
-                        case 0xB: if (!key_states[SDL_SCANCODE_C]) goto skip; break;
-                        case 0xC: if (!key_states[SDL_SCANCODE_4]) goto skip; break;
-                        case 0xD: if (!key_states[SDL_SCANCODE_R]) goto skip; break;
-                        case 0xE: if (!key_states[SDL_SCANCODE_F]) goto skip; break;
-                        case 0xF: if (!key_states[SDL_SCANCODE_V]) goto skip; break;
+                    if (!key_pressed) {
+                        machine->PC += 2;
                     }
 
                     break;
                 }
-
-skip:           machine->PC += 2;
-                break;
 
                 default:
                     goto invalid_instruction;
@@ -391,6 +384,7 @@ skip:           machine->PC += 2;
 
                 // Fx0A - LD Vx, K
                 case 0x0A: {
+                    // TODO: clean up & bug fix (issue #01) are related
                     const bool *key_states = SDL_GetKeyboardState(NULL);
                     uint8_t key;
 
