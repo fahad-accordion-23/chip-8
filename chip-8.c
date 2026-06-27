@@ -5,6 +5,35 @@
 #include <string.h>
 #include <stdbool.h>
 
+/* Helper macros for instruction decoding */
+
+#define GET_TYPE(instruction) ((instruction & 0xF000u) >> 12)
+#define GET_X(instruction)    ((instruction & 0x0F00u) >> 8)
+#define GET_Y(instruction)    ((instruction & 0x00F0u) >> 4)
+#define GET_N(instruction)    (instruction & 0x000Fu)
+#define GET_KK(instruction)   (instruction & 0x00FFu)
+#define GET_NNN(instruction)  (instruction & 0x0FFFu)
+
+#define GET_BYTE GET_KK
+#define GET_ADDR GET_NNN
+
+void decode_type_0(Chip_8 *machine, uint16_t instruction);
+void decode_type_1(Chip_8 *machine, uint16_t instruction);
+void decode_type_2(Chip_8 *machine, uint16_t instruction);
+void decode_type_3(Chip_8 *machine, uint16_t instruction);
+void decode_type_4(Chip_8 *machine, uint16_t instruction);
+void decode_type_5(Chip_8 *machine, uint16_t instruction);
+void decode_type_6(Chip_8 *machine, uint16_t instruction);
+void decode_type_7(Chip_8 *machine, uint16_t instruction);
+void decode_type_8(Chip_8 *machine, uint16_t instruction);
+void decode_type_9(Chip_8 *machine, uint16_t instruction);
+void decode_type_A(Chip_8 *machine, uint16_t instruction);
+void decode_type_B(Chip_8 *machine, uint16_t instruction);
+void decode_type_C(Chip_8 *machine, uint16_t instruction);
+void decode_type_D(Chip_8 *machine, uint16_t instruction);
+void decode_type_E(Chip_8 *machine, uint16_t instruction);
+void decode_type_F(Chip_8 *machine, uint16_t instruction);
+
 SDL_Scancode get_scancode_from_key(uint8_t key) {
     switch (key) {
         case 0x0: return SDL_SCANCODE_X;
@@ -87,6 +116,8 @@ void CHIP8_load(Chip_8 *machine, const char *file_path) {
     machine->PC = 0x200;
 }
 
+
+
 void CHIP8_tick(Chip_8 *machine) {
     /* FETCH */
     uint16_t instruction = machine->memory[machine->PC];
@@ -94,79 +125,40 @@ void CHIP8_tick(Chip_8 *machine) {
     instruction |= machine->memory[machine->PC + 1];
     machine->PC += 2;
 
-    /* pre-extracted parts of the instruction for convenience */
-    uint16_t type = (instruction & 0xF000u) >> 12;
-    uint8_t  x    = (instruction & 0x0F00u) >> 8;
-    uint8_t  y    = (instruction & 0x00F0u) >> 4;
-    uint8_t  n    = (instruction & 0x000Fu);
-    uint8_t  kk   = (instruction & 0x00FFu);
-    uint16_t nnn  = (instruction & 0x0FFFu);
+    uint16_t type = GET_TYPE(instruction);
+    uint8_t  x    = GET_X(instruction);
+    uint8_t  y    = GET_Y(instruction);
+    uint8_t  n    = GET_N(instruction);
+    uint8_t  kk   = GET_KK(instruction);
+    uint16_t nnn  = GET_NNN(instruction);
 
     /* DECODE & EXECUTE */
     switch (type) {
-        case 0x0: {
-            switch (nnn) {
-                // 00E0 - CLS
-                case 0x0E0:
-                    memset(machine->display, 0, sizeof(machine->display));
-                    break;
-
-                // 00EE - RET
-                case 0x0EE:
-                    machine->PC  = machine->stack[machine->SP];
-                    machine->SP -= 1;
-                    break;
-
-                // 0nnn - SYS addr
-                default:
-                    break;
-            }
-
+        case 0x0:
+            decode_type_0(machine, instruction);
             break;
-        }
 
-        // 1nnn - JP addr
-        case 0x1: {
-            machine->PC = nnn;
-
+        case 0x1:
+            decode_type_1(machine, instruction);
             break;
-        }
 
-        // 2nnn - CALL addr
-        case 0x2: {
-            machine->SP += 1;
-            machine->stack[machine->SP] = machine->PC;
-            machine->PC = nnn;
-
+        case 0x2:
+            decode_type_2(machine, instruction);
             break;
-        };
 
         // 3xkk - SE Vx, byte
-        case 0x3: {
-            if (machine->V[x] == kk)
-                machine->PC += 2;
-
+        case 0x3:
+            decode_type_3(machine, instruction);
             break;
-        }
 
-        // 4xkk - SNE Vx, byte
-        case 0x4: {
-            if (machine->V[x] != kk)
-                machine->PC += 2;
-
+        case 0x4:
+            decode_type_4(machine, instruction);
             break;
-        }
 
         // 5xy0 - SE Vx, Vy
-        case 0x5: {
-            if (n != 0)
-                goto invalid_instruction;
-
-            if (machine->V[x] == machine->V[y])
-                machine->PC += 2;
-
+        case 0x5:
+            decode_type_5(machine, instruction);
             break;
-        }
 
         // 6xkk - LD Vx, byte
         case 0x6: {
@@ -530,6 +522,86 @@ invalid_instruction:
                     "Exiting...\n", instruction, type, x, y, n, kk, nnn);
     exit(1);
 }
+
+void decode_type_0(Chip_8 *machine, uint16_t instruction) {
+    uint16_t nnn = GET_NNN(instruction);
+
+    switch (nnn) {
+
+        // 00E0 - CLS
+        case 0x0E0:
+            memset(machine->display, 0, sizeof(machine->display));
+            break;
+
+        // 00EE - RET
+        case 0x0EE:
+            machine->PC  = machine->stack[machine->SP];
+            machine->SP -= 1;
+            break;
+
+        // 0nnn - SYS addr
+        default:
+            break;
+    }
+}
+
+void decode_type_1(Chip_8 *machine, uint16_t instruction) {
+    uint16_t addr = GET_ADDR(instruction);
+
+    // 1nnn - JP addr
+    machine->PC = addr;
+}
+
+void decode_type_2(Chip_8 *machine, uint16_t instruction) {
+    uint16_t addr = GET_ADDR(instruction);
+
+    // 2nnn - CALL addr
+    machine->SP += 1;
+    machine->stack[machine->SP] = machine->PC;
+    machine->PC = addr;
+}
+
+void decode_type_3(Chip_8 *machine, uint16_t instruction) {
+    uint8_t x    = GET_X(instruction);
+    uint8_t byte = GET_BYTE(instruction);
+
+    // 3xkk - SE Vx, byte
+    if (machine->V[x] == byte)
+        machine->PC += 2;
+}
+
+void decode_type_4(Chip_8 *machine, uint16_t instruction) {
+    uint8_t x    = GET_X(instruction);
+    uint8_t byte = GET_BYTE(instruction);
+
+    // 4xkk - SNE Vx, byte
+    if (machine->V[x] != byte)
+        machine->PC += 2;
+}
+
+void decode_type_5(Chip_8 *machine, uint16_t instruction) {
+    uint8_t n = GET_N(instruction);
+    uint8_t x = GET_X(instruction);
+    uint8_t y = GET_Y(instruction);
+
+    // 5xy0 - SE Vx, Vy
+    if (n == 0) {
+        if (machine->V[x] == machine->V[y])
+            machine->PC += 2;
+    }
+}
+
+void decode_type_6(Chip_8 *machine, uint16_t instruction);
+void decode_type_7(Chip_8 *machine, uint16_t instruction);
+void decode_type_8(Chip_8 *machine, uint16_t instruction);
+void decode_type_9(Chip_8 *machine, uint16_t instruction);
+void decode_type_A(Chip_8 *machine, uint16_t instruction);
+void decode_type_B(Chip_8 *machine, uint16_t instruction);
+void decode_type_C(Chip_8 *machine, uint16_t instruction);
+void decode_type_D(Chip_8 *machine, uint16_t instruction);
+void decode_type_E(Chip_8 *machine, uint16_t instruction);
+void decode_type_F(Chip_8 *machine, uint16_t instruction);
+
 
 void CHIP8_decrement_timers(Chip_8 *machine) {
     machine->DT -= 1;
