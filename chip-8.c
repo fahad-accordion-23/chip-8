@@ -116,8 +116,6 @@ void CHIP8_load(Chip_8 *machine, const char *file_path) {
     machine->PC = 0x200;
 }
 
-
-
 void CHIP8_tick(Chip_8 *machine) {
     /* FETCH */
     uint16_t instruction = machine->memory[machine->PC];
@@ -125,15 +123,8 @@ void CHIP8_tick(Chip_8 *machine) {
     instruction |= machine->memory[machine->PC + 1];
     machine->PC += 2;
 
-    uint16_t type = GET_TYPE(instruction);
-    uint8_t  x    = GET_X(instruction);
-    uint8_t  y    = GET_Y(instruction);
-    uint8_t  n    = GET_N(instruction);
-    uint8_t  kk   = GET_KK(instruction);
-    uint16_t nnn  = GET_NNN(instruction);
-
     /* DECODE & EXECUTE */
-    switch (type) {
+    switch (GET_TYPE(instruction)) {
         case 0x0:
             decode_type_0(machine, instruction);
             break;
@@ -146,7 +137,6 @@ void CHIP8_tick(Chip_8 *machine) {
             decode_type_2(machine, instruction);
             break;
 
-        // 3xkk - SE Vx, byte
         case 0x3:
             decode_type_3(machine, instruction);
             break;
@@ -155,372 +145,50 @@ void CHIP8_tick(Chip_8 *machine) {
             decode_type_4(machine, instruction);
             break;
 
-        // 5xy0 - SE Vx, Vy
         case 0x5:
             decode_type_5(machine, instruction);
             break;
 
-        // 6xkk - LD Vx, byte
-        case 0x6: {
-            machine->V[x] = kk;
-
+        case 0x6:
+            decode_type_6(machine, instruction);
             break;
-        }
 
-        // 7xnn - ADD Vx, byte
-        case 0x7: {
-            machine->V[x] = machine->V[x] + kk;
-
+        case 0x7:
+            decode_type_7(machine, instruction);
             break;
-        }
 
-        case 0x8: {
-            switch (n) {
-                // 8xy0 - LD Vx, Vy
-                case 0x0: {
-                    machine->V[x] = machine->V[y];
-
-                    break;
-                }
-
-                // 8xy1 - OR Vx, Vy
-                case 0x1: {
-                    uint8_t Vf = 0;
-
-                    machine->V[x]   = machine->V[x] | machine->V[y];
-
-                    if (machine->vf_reset)
-                        machine->V[0xF] = Vf;
-
-                    break;
-                }
-
-                // 8xy2 - AND Vx, Vy
-                case 0x2: {
-                    uint8_t Vf = 0;
-
-                    machine->V[x]   = machine->V[x] & machine->V[y];
-
-                    if (machine->vf_reset)
-                        machine->V[0xF] = Vf;
-
-                    break;
-                }
-
-                // 8xy3 - XOR Vx, Vy
-                case 0x3: {
-                    uint8_t Vf = 0;
-
-                    machine->V[x]   = machine->V[x] ^ machine->V[y];
-
-                    if (machine->vf_reset)
-                        machine->V[0xF] = Vf;
-
-                    break;
-                }
-
-                // 8xy4 - ADD Vx, Vy
-                case 0x4: {
-                    uint16_t result = machine->V[x] + machine->V[y];
-                    machine->V[x]   = (uint8_t) result;
-                    machine->V[0xF] = (result > 255) ? 1 : 0;
-
-                    break;
-                }
-
-                // 8xy5 - SUB Vx, Vy
-                case 0x5: {
-                    uint8_t Vf = (machine->V[x] >= machine->V[y]) ? 1 : 0;
-
-                    machine->V[x]   = machine->V[x] - machine->V[y];
-                    machine->V[0xF] = Vf;
-
-                    break;
-                }
-
-                // 8xy6 - SHR Vx {, Vy}
-                case 0x6: {
-                    uint8_t Vf = (machine->V[x] & 1) ? 1 : 0;
-
-                    machine->V[x]   = machine->V[x] >> 1;
-                    machine->V[0xF] = Vf;
-
-                    break;
-                }
-
-                // 8xy7 - SUBN Vx, Vy
-                case 0x7: {
-                    uint8_t Vf = (machine->V[y] >= machine->V[x]) ? 1 : 0;
-
-                    machine->V[x]   = machine->V[y] - machine->V[x];
-                    machine->V[0xF] = Vf;
-
-                    break;
-                }
-
-                // 8xyE - SHL Vx {, Vy}
-                case 0xE: {
-                    uint8_t Vf = (machine->V[x] & 0x80) ? 1 : 0;
-
-                    machine->V[x]   = machine->V[x] << 1;
-                    machine->V[0xF] = Vf;
-
-                    break;
-                }
-
-                default:
-                    goto invalid_instruction;
-            }
-
+        case 0x8:
+            decode_type_8(machine, instruction);
             break;
-        }
 
-        // 9xy0 - SNE Vx, Vy
-        case 0x9: {
-            if (n != 0x0)
-                goto invalid_instruction;
-
-            if (machine->V[x] != machine->V[y])
-                machine->PC += 2;
-
+        case 0x9:
+            decode_type_9(machine, instruction);
             break;
-        }
 
-        // Annn - LD I, addr
-        case 0xA: {
-            machine->I = nnn;
-
+        case 0xA:
+            decode_type_A(machine, instruction);
             break;
-        }
 
-        // Bnnn - JP V0, addr
-        case 0xB: {
-            machine->PC = machine->V[0] + nnn;
-
+        case 0xB:
+            decode_type_B(machine, instruction);
             break;
-        }
 
-        // Cxkk - RND Vx, byte
-        case 0xC: {
-            uint8_t rand_int = (uint8_t) (rand() % 256) & kk;
-            machine->V[x]    = rand_int;
-
+        case 0xC:
+            decode_type_C(machine, instruction);
             break;
-        }
 
-        // Dxyn - DRW Vx, Vy, nibble
-        case 0xD: {
-            uint8_t cx = machine->V[x];
-            uint8_t cy = machine->V[y];
-
-            cx &= DISPLAY_WIDTH - 1;    // mod by 63
-            cy &= DISPLAY_HEIGHT - 1;   // mod by 31
-
-            for (int i = 0; i < n; i++) {
-                uint8_t byte = machine->memory[machine->I + i];
-
-                uint8_t here = (byte >> (cx & 7));
-                uint8_t there = (byte << (8 - (cx & 7)));
-
-                if (cy + i >= DISPLAY_HEIGHT)
-                    break;
-
-                int location_l = (cy + i) * WIDTH_BYTES + (cx / 8);
-                int location_r = (cy + i) * WIDTH_BYTES + ((cx + 8) / 8);
-                machine->display[location_l] ^= here;
-                machine->display[location_r] ^= there;
-            }
-
+        case 0xD:
+            decode_type_D(machine, instruction);
             break;
-        }
 
-        case 0xE: {
-            const bool *key_states = SDL_GetKeyboardState(NULL);
-            SDL_Scancode key = get_scancode_from_key(machine->V[x]);
-            bool key_pressed = key_states[key];
-
-            switch (kk) {
-                // Ex9E - SKP Vx
-                case 0x9E: {
-                    if (key_pressed) {
-                        machine->PC += 2;
-                    }
-
-                    break;
-                }
-
-                // ExA1 - SKNP Vx
-                case 0xA1: {
-                    if (!key_pressed) {
-                        machine->PC += 2;
-                    }
-
-                    break;
-                }
-
-                default:
-                    goto invalid_instruction;
-            }
-
+        case 0xE:
+            decode_type_E(machine, instruction);
             break;
-        }
 
-        case 0xF: {
-            switch (kk) {
-                // Fx07 - LD Vx, DT
-                case 0x07: {
-                    machine->V[x] = machine->DT;
-
-                    break;
-                }
-
-                // Fx0A - LD Vx, K
-                case 0x0A: {
-                    // TODO: clean up & bug fix (issue #01) are related
-                    const bool *key_states = SDL_GetKeyboardState(NULL);
-                    uint8_t key;
-
-                    if (key_states[SDL_SCANCODE_X]) { key = 0x0; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_1]) { key = 0x1; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_2]) { key = 0x2; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_3]) { key = 0x3; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_Q]) { key = 0x4; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_W]) { key = 0x5; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_E]) { key = 0x6; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_A]) { key = 0x7; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_S]) { key = 0x8; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_D]) { key = 0x9; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_Z]) { key = 0xA; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_C]) { key = 0xB; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_4]) { key = 0xC; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_R]) { key = 0xD; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_F]) { key = 0xE; goto key_pressed; }
-                    if (key_states[SDL_SCANCODE_V]) { key = 0xF; goto key_pressed; }
-
-                    machine->PC -= 2;
-                    break;
-
-key_pressed:        machine->V[x] = key;
-                    break;
-                }
-
-                // Fx15 - LD DT, Vx
-                case 0x15: {
-                    machine->DT = machine->V[x];
-
-                    break;
-                }
-
-                // Fx18 - LD ST, Vx
-                case 0x18: {
-                    machine->ST = machine->V[x];
-
-                    break;
-                }
-
-                // Fx1E - ADD I, Vx
-                case 0x1E: {
-                    machine->I = machine->I + machine->V[x];
-
-                    break;
-                }
-
-                // Fx29 - LD F, Vx
-                case 0x29: {
-                    uint8_t ch = machine->V[x];
-
-                    switch (ch) {
-                        case '0': machine->I =  0; break;
-                        case '1': machine->I =  6; break;
-                        case '2': machine->I = 12; break;
-                        case '3': machine->I = 18; break;
-                        case '4': machine->I = 24; break;
-                        case '5': machine->I = 30; break;
-                        case '6': machine->I = 36; break;
-                        case '7': machine->I = 42; break;
-                        case '8': machine->I = 48; break;
-                        case '9': machine->I = 54; break;
-                        case 'A': machine->I = 60; break;
-                        case 'B': machine->I = 66; break;
-                        case 'C': machine->I = 72; break;
-                        case 'D': machine->I = 78; break;
-                        case 'E': machine->I = 84; break;
-                        case 'F': machine->I = 90; break;
-                    }
-
-                    break;
-                }
-
-                // Fx33 - LD B, Vx
-                case 0x33: {
-                    uint8_t num = machine->V[x];
-
-                    machine->memory[machine->I + 2] = num % 10;
-                    num /= 10;
-
-                    machine->memory[machine->I + 1] = num % 10;
-                    num /= 10;
-
-                    machine->memory[machine->I + 0] = num % 10;
-                    num /= 10;
-
-                    break;
-                }
-
-                // Fx55 - LD [I], Vx
-                case 0x55: {
-                    for (int i = 0; i <= x; i++) {
-                        if (machine->increment_index) {
-                            machine->memory[machine->I] = machine->V[i];
-                            machine->I += 1;
-                        } else {
-                            machine->memory[machine->I + i] = machine->V[i];
-                        }
-                    }
-
-                    break;
-                }
-
-                // Fx65 - LD Vx, [I]
-                case 0x65: {
-                    for (int i = 0; i <= x; i++) {
-                        if (machine->increment_index) {
-                            machine->V[i] = machine->memory[machine->I];
-                            machine->I += 1;
-                        } else {
-                            machine->V[i] = machine->memory[machine->I + i];
-                        }
-                    }
-
-                    // TODO: allow to change behaviour
-                    // older interpreters used to increment register I
-
-                    break;
-                }
-
-                default:
-                    goto invalid_instruction;
-            }
-
-        break;
-        }
-
-        default:
-            goto invalid_instruction;
+        case 0xF:
+            decode_type_F(machine, instruction);
+            break;
     }
-
-    return;
-
-invalid_instruction:
-    fprintf(stderr, "Invalid instruction: %04X\n"
-                    "type: %01X\n"
-                    "x: %01X\n"
-                    "y: %01X\n"
-                    "n: %01X\n"
-                    "kk: %02X\n"
-                    "nnn: %03X\n"
-                    "Exiting...\n", instruction, type, x, y, n, kk, nnn);
-    exit(1);
 }
 
 void decode_type_0(Chip_8 *machine, uint16_t instruction) {
@@ -591,16 +259,321 @@ void decode_type_5(Chip_8 *machine, uint16_t instruction) {
     }
 }
 
-void decode_type_6(Chip_8 *machine, uint16_t instruction);
-void decode_type_7(Chip_8 *machine, uint16_t instruction);
-void decode_type_8(Chip_8 *machine, uint16_t instruction);
-void decode_type_9(Chip_8 *machine, uint16_t instruction);
-void decode_type_A(Chip_8 *machine, uint16_t instruction);
-void decode_type_B(Chip_8 *machine, uint16_t instruction);
-void decode_type_C(Chip_8 *machine, uint16_t instruction);
-void decode_type_D(Chip_8 *machine, uint16_t instruction);
-void decode_type_E(Chip_8 *machine, uint16_t instruction);
-void decode_type_F(Chip_8 *machine, uint16_t instruction);
+void decode_type_6(Chip_8 *machine, uint16_t instruction) {
+    uint8_t x    = GET_X(instruction);
+    uint8_t byte = GET_BYTE(instruction);
+
+    // 6xkk - LD Vx, byte
+    machine->V[x] = byte;
+}
+
+void decode_type_7(Chip_8 *machine, uint16_t instruction) {
+    uint8_t x    = GET_X(instruction);
+    uint8_t byte = GET_BYTE(instruction);
+
+    // 7xnn - ADD Vx, byte
+    machine->V[x] = machine->V[x] + byte;
+}
+
+void decode_type_8(Chip_8 *machine, uint16_t instruction) {
+    uint8_t x = GET_X(instruction);
+    uint8_t y = GET_Y(instruction);
+    uint8_t n = GET_N(instruction);
+
+    uint8_t  VF;
+    uint16_t result;
+
+    switch (n) {
+        // 8xy0 - LD Vx, Vy
+        case 0x0:
+            machine->V[x] = machine->V[y];
+            break;
+
+        // 8xy1 - OR Vx, Vy
+        case 0x1:
+            machine->V[x] = machine->V[x] | machine->V[y];
+
+            if (machine->vf_reset)
+                machine->V[0xF] = 0;
+
+            break;
+
+        // 8xy2 - AND Vx, Vy
+        case 0x2:
+            machine->V[x] = machine->V[x] & machine->V[y];
+
+            if (machine->vf_reset)
+                machine->V[0xF] = 0;
+
+            break;
+
+        // 8xy3 - XOR Vx, Vy
+        case 0x3:
+            machine->V[x] = machine->V[x] ^ machine->V[y];
+
+            if (machine->vf_reset)
+                machine->V[0xF] = 0;
+
+            break;
+
+        // 8xy4 - ADD Vx, Vy
+        case 0x4:
+            result = machine->V[x] + machine->V[y];
+
+            machine->V[x]   = (uint8_t) result;
+            machine->V[0xF] = (result > 255) ? 1 : 0;
+
+            break;
+
+        // 8xy5 - SUB Vx, Vy
+        case 0x5:
+            VF = (machine->V[x] >= machine->V[y]) ? 1 : 0;
+
+            machine->V[x]   = machine->V[x] - machine->V[y];
+            machine->V[0xF] = VF;
+
+            break;
+
+        // 8xy6 - SHR Vx {, Vy}
+        case 0x6:
+            VF = (machine->V[x] & 1) ? 1 : 0;
+
+            machine->V[x]   = machine->V[x] >> 1;
+            machine->V[0xF] = VF;
+
+            break;
+
+        // 8xy7 - SUBN Vx, Vy
+        case 0x7:
+            VF = (machine->V[y] >= machine->V[x]) ? 1 : 0;
+
+            machine->V[x]   = machine->V[y] - machine->V[x];
+            machine->V[0xF] = VF;
+
+            break;
+
+        // 8xyE - SHL Vx {, Vy}
+        case 0xE:
+            VF = (machine->V[x] & 0x80) ? 1 : 0;
+
+            machine->V[x]   = machine->V[x] << 1;
+            machine->V[0xF] = VF;
+
+            break;
+    }
+}
+
+void decode_type_9(Chip_8 *machine, uint16_t instruction) {
+    uint8_t x = GET_X(instruction);
+    uint8_t y = GET_Y(instruction);
+    uint8_t n = GET_N(instruction);
+
+    // 9xy0 - SNE Vx, Vy
+    if (n == 0) {
+        if (machine->V[x] != machine->V[y])
+            machine->PC += 2;
+    }
+}
+
+void decode_type_A(Chip_8 *machine, uint16_t instruction) {
+    uint16_t addr = GET_ADDR(instruction);
+
+    // Annn - LD I, addr
+    machine->I = addr;
+}
+
+void decode_type_B(Chip_8 *machine, uint16_t instruction) {
+    uint16_t addr = GET_ADDR(instruction);
+
+    // Bnnn - JP V0, addr
+    machine->PC = machine->V[0] + addr;
+}
+
+void decode_type_C(Chip_8 *machine, uint16_t instruction) {
+    uint8_t x    = GET_X(instruction);
+    uint8_t byte = GET_BYTE(instruction);
+
+    // Cxkk - RND Vx, byte
+    machine->V[x] = (uint8_t) (rand() % 256) & byte;
+}
+
+void decode_type_D(Chip_8 *machine, uint16_t instruction) {
+    uint8_t x = GET_X(instruction);
+    uint8_t y = GET_Y(instruction);
+    uint8_t n = GET_N(instruction);
+
+    // Dxyn - DRW Vx, Vy, nibble
+    uint8_t cx = machine->V[x];
+    uint8_t cy = machine->V[y];
+
+    cx &= DISPLAY_WIDTH - 1;    // mod by 63
+    cy &= DISPLAY_HEIGHT - 1;   // mod by 31
+
+    for (int i = 0; i < n; i++) {
+        uint8_t byte = machine->memory[machine->I + i];
+
+        uint8_t here = (byte >> (cx & 7));
+        uint8_t there = (byte << (8 - (cx & 7)));
+
+        if (cy + i >= DISPLAY_HEIGHT)
+            break;
+
+        int location_l = (cy + i) * WIDTH_BYTES + (cx / 8);
+        int location_r = (cy + i) * WIDTH_BYTES + ((cx + 8) / 8);
+        machine->display[location_l] ^= here;
+        machine->display[location_r] ^= there;
+    }
+}
+
+void decode_type_E(Chip_8 *machine, uint16_t instruction) {
+    uint8_t x  = GET_X(instruction);
+    uint8_t kk = GET_KK(instruction);
+
+    const bool *key_states = SDL_GetKeyboardState(NULL);
+    SDL_Scancode key = get_scancode_from_key(machine->V[x]);
+    bool key_pressed = key_states[key];
+
+    switch (kk) {
+        // Ex9E - SKP Vx
+        case 0x9E:
+            if (key_pressed)
+                machine->PC += 2;
+
+            break;
+
+        // ExA1 - SKNP Vx
+        case 0xA1:
+            if (!key_pressed)
+                machine->PC += 2;
+
+            break;
+    }
+}
+
+void decode_type_F(Chip_8 *machine, uint16_t instruction) {
+    uint8_t x  = GET_X(instruction);
+    uint8_t kk = GET_KK(instruction);
+
+    const bool *key_states;
+    uint8_t key;
+    uint8_t num;
+
+    switch (kk) {
+        // Fx07 - LD Vx, DT
+        case 0x07:
+            machine->V[x] = machine->DT;
+            break;
+
+        // Fx0A - LD Vx, K
+        case 0x0A:
+            // TODO: clean up & bug fix (issue #01) are related
+            key_states = SDL_GetKeyboardState(NULL);
+
+            if (key_states[SDL_SCANCODE_X]) { key = 0x0; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_1]) { key = 0x1; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_2]) { key = 0x2; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_3]) { key = 0x3; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_Q]) { key = 0x4; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_W]) { key = 0x5; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_E]) { key = 0x6; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_A]) { key = 0x7; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_S]) { key = 0x8; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_D]) { key = 0x9; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_Z]) { key = 0xA; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_C]) { key = 0xB; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_4]) { key = 0xC; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_R]) { key = 0xD; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_F]) { key = 0xE; goto key_pressed; }
+            if (key_states[SDL_SCANCODE_V]) { key = 0xF; goto key_pressed; }
+
+            machine->PC -= 2;
+            break;
+
+key_pressed:
+            machine->V[x] = key;
+            break;
+
+
+        // Fx15 - LD DT, Vx
+        case 0x15:
+            machine->DT = machine->V[x];
+            break;
+
+        // Fx18 - LD ST, Vx
+        case 0x18:
+            machine->ST = machine->V[x];
+            break;
+
+        // Fx1E - ADD I, Vx
+        case 0x1E:
+            machine->I = machine->I + machine->V[x];
+            break;
+
+        // Fx29 - LD F, Vx
+        case 0x29:
+            switch (machine->V[x]) {
+                case '0': machine->I =  0; break;
+                case '1': machine->I =  6; break;
+                case '2': machine->I = 12; break;
+                case '3': machine->I = 18; break;
+                case '4': machine->I = 24; break;
+                case '5': machine->I = 30; break;
+                case '6': machine->I = 36; break;
+                case '7': machine->I = 42; break;
+                case '8': machine->I = 48; break;
+                case '9': machine->I = 54; break;
+                case 'A': machine->I = 60; break;
+                case 'B': machine->I = 66; break;
+                case 'C': machine->I = 72; break;
+                case 'D': machine->I = 78; break;
+                case 'E': machine->I = 84; break;
+                case 'F': machine->I = 90; break;
+            }
+
+            break;
+
+        // Fx33 - LD B, Vx
+        case 0x33:
+            num = machine->V[x];
+
+            machine->memory[machine->I + 2] = num % 10;
+            num /= 10;
+
+            machine->memory[machine->I + 1] = num % 10;
+            num /= 10;
+
+            machine->memory[machine->I + 0] = num % 10;
+            num /= 10;
+
+            break;
+
+        // Fx55 - LD [I], Vx
+        case 0x55:
+            for (int i = 0; i <= x; i++) {
+                if (machine->increment_index) {
+                    machine->memory[machine->I] = machine->V[i];
+                    machine->I += 1;
+                } else {
+                    machine->memory[machine->I + i] = machine->V[i];
+                }
+            }
+
+            break;
+
+        // Fx65 - LD Vx, [I]
+        case 0x65:
+            for (int i = 0; i <= x; i++) {
+                if (machine->increment_index) {
+                    machine->V[i] = machine->memory[machine->I];
+                    machine->I += 1;
+                } else {
+                    machine->V[i] = machine->memory[machine->I + i];
+                }
+            }
+
+            break;
+    }
+}
 
 
 void CHIP8_decrement_timers(Chip_8 *machine) {
