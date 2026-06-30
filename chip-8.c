@@ -441,23 +441,42 @@ void decode_type_F(Chip_8 *machine, uint16_t instruction) {
 
         // Fx0A - LD Vx, K
         case 0x0A:
-        {
-            int key = -1;
-
-            for (uint8_t i = 0; i <= 0xF; i++) {
-                if (machine->key_state[i]) {
-                    key = i;
+            switch (machine->state) {
+                case STATE_RUNNING:
+                    machine->state  = STATE_WAITING_FOR_KEY_DOWN;
+                    machine->PC    -= 2;
                     break;
-                }
+
+                case STATE_WAITING_FOR_KEY_DOWN:
+                    for (uint8_t i = 0; i <= 0xF; i++) {
+
+                        if (machine->key_state[i]) {
+
+                            machine->wait_key = i;
+                            machine->wait_register = x;
+
+                            machine->state = STATE_WAITING_FOR_KEY_UP;
+
+                            break;  // out of loop
+                        }
+                    }
+
+                    machine->PC -= 2;
+                    break;
+
+                case STATE_WAITING_FOR_KEY_UP:
+                    if (machine->key_state[machine->wait_key] == false) {
+
+                        machine->V[machine->wait_register] = machine->wait_key;
+
+                        machine->state  = STATE_RUNNING;
+                        break;
+                    }
+
+                    machine->PC -= 2;
+                    break;
             }
-
-            if (key != -1)
-                machine->V[x] = (uint8_t) key;
-            else
-                machine->PC -= 2;
-
             break;
-        }
 
         // Fx15 - LD DT, Vx
         case 0x15:

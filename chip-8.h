@@ -11,8 +11,13 @@
 #define MEMORY_SIZE    4096
 #define STACK_SIZE     16
 
-typedef struct {
+typedef enum {
+    STATE_RUNNING,
+    STATE_WAITING_FOR_KEY_DOWN,
+    STATE_WAITING_FOR_KEY_UP,
+} State;
 
+typedef struct {
     /* INTERNALS */
     uint8_t memory[MEMORY_SIZE];
 
@@ -37,6 +42,11 @@ typedef struct {
     /* CONFIGURATION RELATED */
     bool vf_reset;
     bool increment_index;
+
+    /* STATE RELATED */
+    State state;
+    uint8_t wait_key;
+    uint8_t wait_register;
 
 } Chip_8;
 
