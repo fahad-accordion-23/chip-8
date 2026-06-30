@@ -68,6 +68,7 @@ int main(int argc, char **argv) {
     /* Set CHIP-8 machine options */
     CHIP8_set_vf_reset(&machine, true);
     CHIP8_set_increment_index(&machine, true);
+    CHIP8_set_shift_from_vy(&machine, true);
 
     /* Load program */
     CHIP8_load(&machine, file_path);

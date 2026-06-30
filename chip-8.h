@@ -42,6 +42,7 @@ typedef struct {
     /* CONFIGURATION RELATED */
     bool vf_reset;
     bool increment_index;
+    bool shift_from_vy;
 
     /* STATE RELATED */
     State state;
@@ -58,6 +59,9 @@ void CHIP8_set_vf_reset(Chip_8 *machine, bool value);
 
 /* Set the increment_index quirk */
 void CHIP8_set_increment_index(Chip_8 *machine, bool value);
+
+/* Set the shifting quirk */
+void CHIP8_set_shift_from_vy(Chip_8 *machine, bool value);
 
 /* Load a program to run */
 void CHIP8_load(Chip_8 *machine, const char *file_path);

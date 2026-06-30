@@ -80,6 +80,10 @@ void CHIP8_set_increment_index(Chip_8 *machine, bool value) {
     machine->increment_index = true;
 }
 
+void CHIP8_set_shift_from_vy(Chip_8 *machine, bool value) {
+    machine->shift_from_vy = value;
+}
+
 void CHIP8_load(Chip_8 *machine, const char *file_path) {
     FILE *file = fopen(file_path, "rb");
 
@@ -314,6 +318,9 @@ void decode_type_8(Chip_8 *machine, uint16_t instruction) {
 
         // 8xy6 - SHR Vx {, Vy}
         case 0x6:
+            if (machine->shift_from_vy)
+                machine->V[x] = machine->V[y];
+
             VF = (machine->V[x] & 1) ? 1 : 0;
 
             machine->V[x]   = machine->V[x] >> 1;
@@ -332,6 +339,9 @@ void decode_type_8(Chip_8 *machine, uint16_t instruction) {
 
         // 8xyE - SHL Vx {, Vy}
         case 0xE:
+            if (machine->shift_from_vy)
+                machine->V[x] = machine->V[y];
+
             VF = (machine->V[x] & 0x80) ? 1 : 0;
 
             machine->V[x]   = machine->V[x] << 1;
