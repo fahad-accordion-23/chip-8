@@ -577,7 +577,10 @@ key_pressed:
 
 
 void CHIP8_decrement_timers(Chip_8 *machine) {
-    machine->DT -= 1;
-    machine->ST -= 1;
+    if (machine->DT > 0)
+        machine->DT -= 1;
+
+    if (machine->ST > 0)
+        machine->ST -= 1;
 }
 
