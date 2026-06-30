@@ -1,5 +1,4 @@
 #include "chip-8.h"
-#include <SDL3/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,29 +33,6 @@ void decode_type_D(Chip_8 *machine, uint16_t instruction);
 void decode_type_E(Chip_8 *machine, uint16_t instruction);
 void decode_type_F(Chip_8 *machine, uint16_t instruction);
 
-SDL_Scancode get_scancode_from_key(uint8_t key) {
-    switch (key) {
-        case 0x0: return SDL_SCANCODE_X;
-        case 0x1: return SDL_SCANCODE_1;
-        case 0x2: return SDL_SCANCODE_2;
-        case 0x3: return SDL_SCANCODE_3;
-        case 0x4: return SDL_SCANCODE_Q;
-        case 0x5: return SDL_SCANCODE_W;
-        case 0x6: return SDL_SCANCODE_E;
-        case 0x7: return SDL_SCANCODE_A;
-        case 0x8: return SDL_SCANCODE_S;
-        case 0x9: return SDL_SCANCODE_D;
-        case 0xA: return SDL_SCANCODE_Z;
-        case 0xB: return SDL_SCANCODE_C;
-        case 0xC: return SDL_SCANCODE_4;
-        case 0xD: return SDL_SCANCODE_R;
-        case 0xE: return SDL_SCANCODE_F;
-        case 0xF: return SDL_SCANCODE_V;
-
-        default : return SDL_SCANCODE_UNKNOWN;
-    }
-}
-
 void CHIP8_init(Chip_8 *machine) {
     memset(machine->display, 0, sizeof(machine->display));
     memset(machine->memory, 0, sizeof(machine->memory));
@@ -70,6 +46,8 @@ void CHIP8_init(Chip_8 *machine) {
 
     machine->vf_reset = false;
     machine->increment_index = false;
+
+    memset(machine->key_state, 0, sizeof(machine->key_state));
 
     /* load fonts */
     uint8_t sprites[] = {
@@ -429,9 +407,8 @@ void decode_type_E(Chip_8 *machine, uint16_t instruction) {
     uint8_t x  = GET_X(instruction);
     uint8_t kk = GET_KK(instruction);
 
-    const bool *key_states = SDL_GetKeyboardState(NULL);
-    SDL_Scancode key = get_scancode_from_key(machine->V[x]);
-    bool key_pressed = key_states[key];
+    uint8_t key = machine->V[x];
+    bool key_pressed = machine->key_state[key];
 
     switch (kk) {
         // Ex9E - SKP Vx
@@ -454,8 +431,6 @@ void decode_type_F(Chip_8 *machine, uint16_t instruction) {
     uint8_t x  = GET_X(instruction);
     uint8_t kk = GET_KK(instruction);
 
-    const bool *key_states;
-    uint8_t key;
     uint8_t num;
 
     switch (kk) {
@@ -466,33 +441,23 @@ void decode_type_F(Chip_8 *machine, uint16_t instruction) {
 
         // Fx0A - LD Vx, K
         case 0x0A:
-            // TODO: clean up & bug fix (issue #01) are related
-            key_states = SDL_GetKeyboardState(NULL);
+        {
+            int key = -1;
 
-            if (key_states[SDL_SCANCODE_X]) { key = 0x0; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_1]) { key = 0x1; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_2]) { key = 0x2; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_3]) { key = 0x3; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_Q]) { key = 0x4; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_W]) { key = 0x5; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_E]) { key = 0x6; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_A]) { key = 0x7; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_S]) { key = 0x8; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_D]) { key = 0x9; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_Z]) { key = 0xA; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_C]) { key = 0xB; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_4]) { key = 0xC; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_R]) { key = 0xD; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_F]) { key = 0xE; goto key_pressed; }
-            if (key_states[SDL_SCANCODE_V]) { key = 0xF; goto key_pressed; }
+            for (uint8_t i = 0; i <= 0xF; i++) {
+                if (machine->key_state[i]) {
+                    key = i;
+                    break;
+                }
+            }
 
-            machine->PC -= 2;
+            if (key != -1)
+                machine->V[x] = (uint8_t) key;
+            else
+                machine->PC -= 2;
+
             break;
-
-key_pressed:
-            machine->V[x] = key;
-            break;
-
+        }
 
         // Fx15 - LD DT, Vx
         case 0x15:

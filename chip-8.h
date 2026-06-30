@@ -12,8 +12,8 @@
 #define STACK_SIZE     16
 
 typedef struct {
+
     /* INTERNALS */
-    uint8_t display[WIDTH_BYTES * HEIGHT_BYTES];
     uint8_t memory[MEMORY_SIZE];
 
     uint16_t stack[STACK_SIZE];
@@ -27,6 +27,12 @@ typedef struct {
 
     uint8_t SP;
     uint16_t PC;
+
+    /* OUTPUT */
+    uint8_t display[WIDTH_BYTES * HEIGHT_BYTES];
+
+    /* INPUT */
+    bool key_state[16];
 
     /* CONFIGURATION RELATED */
     bool vf_reset;
