@@ -6,31 +6,20 @@
 
 #define WINDOW_WIDTH  640
 #define WINDOW_HEIGHT 320
-#define TIMER_SPEED   600  // 60Hz
-#define TICK_SPEED    7000 // 700Hz
 
-int get_key_from_scancode(SDL_Scancode scancode) {
-    switch (scancode) {
-        case SDL_SCANCODE_X: return 0x0;
-        case SDL_SCANCODE_1: return 0x1;
-        case SDL_SCANCODE_2: return 0x2;
-        case SDL_SCANCODE_3: return 0x3;
-        case SDL_SCANCODE_Q: return 0x4;
-        case SDL_SCANCODE_W: return 0x5;
-        case SDL_SCANCODE_E: return 0x6;
-        case SDL_SCANCODE_A: return 0x7;
-        case SDL_SCANCODE_S: return 0x8;
-        case SDL_SCANCODE_D: return 0x9;
-        case SDL_SCANCODE_Z: return 0xA;
-        case SDL_SCANCODE_C: return 0xB;
-        case SDL_SCANCODE_4: return 0xC;
-        case SDL_SCANCODE_R: return 0xD;
-        case SDL_SCANCODE_F: return 0xE;
-        case SDL_SCANCODE_V: return 0xF;
+#define TIMER_TICK_RATE 60   // Hz
+#define CPU_TICK_RATE   700  // Hz
+#define FRAME_RATE      60   // Hz
 
-        default: return -1;
-    }
-}
+#define TIME_PER_TIMER_TICK (1.0f / TIMER_TICK_RATE)
+#define TIME_PER_CPU_TICK   (1.0f / CPU_TICK_RATE)
+#define TIME_PER_FRAME      (1.0f / FRAME_RATE)
+
+#define MIN_CPU_TICKS_PER_FRAME (CPU_TICK_RATE / FRAME_RATE)
+#define MAX_CPU_TICKS_PER_FRAME (MIN_CPU_TICKS_PER_FRAME * 2)
+
+int get_key_from_scancode(SDL_Scancode scancode);
+void update_pixel_buffer(Chip_8 *machine, uint32_t *pixel_buffer);
 
 int main(int argc, char **argv) {
     const char *file_path;
@@ -95,17 +84,22 @@ int main(int argc, char **argv) {
     CHIP8_set_increment_index(&machine, true);
 
     Uint64 last_time = SDL_GetPerformanceCounter();
-    float time_elapsed_since_last_tick = 0.0f;
-    float time_elapsed_since_last_decrement = 0.0f;
+
+    float timer_accumulator = 0.0f;
+    float cpu_accumulator   = 0.0f;
+    float frame_accumulator = 0.0f;
 
     while (1) {
-        Uint64 now          = SDL_GetPerformanceCounter();
-        Uint64 elapsed_time = SDL_GetPerformanceCounter() - last_time;
-        float dt = (float) elapsed_time / (float) SDL_GetPerformanceFrequency();
-        last_time = now;
 
-        time_elapsed_since_last_tick += dt;
-        time_elapsed_since_last_decrement += dt;
+        Uint64 now          = SDL_GetPerformanceCounter();
+        Uint64 elapsed_time = now - last_time;
+               last_time    = now;
+
+        float dt = (float) elapsed_time / (float) SDL_GetPerformanceFrequency();
+
+        timer_accumulator += dt;
+        cpu_accumulator   += dt;
+        frame_accumulator += dt;
 
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) {
@@ -129,35 +123,35 @@ int main(int argc, char **argv) {
             }
         }
 
-        if (time_elapsed_since_last_tick >= (1.0f / TICK_SPEED)) {
-            time_elapsed_since_last_tick = 0.0f;
-
+        int ticks_processed = 0;
+        while (cpu_accumulator >= TIME_PER_CPU_TICK && ticks_processed <= MAX_CPU_TICKS_PER_FRAME) {
+            
             CHIP8_tick(&machine);
+
+            cpu_accumulator -= TIME_PER_CPU_TICK;
+            ticks_processed++;
         }
 
-        if (time_elapsed_since_last_decrement >= (1.0f / TIMER_SPEED)) {
-            time_elapsed_since_last_decrement = 0.0f;
+        if (timer_accumulator >= TIME_PER_TIMER_TICK) {
 
             CHIP8_decrement_timers(&machine);
+
+            timer_accumulator = 0.0f;  // timer ticks maybe skipped
         }
 
-        for (int j = 0; j < 32; j++) {
-            for (int i = 0; i < 64 / 8; i++) {
+        if (frame_accumulator >= TIME_PER_FRAME) {
 
-                for (int n = 7; n >= 0; n--) {
-                    int bit = (machine.display[j * 8 + i] >> n) & 1;
+            update_pixel_buffer(&machine, pixel_buffer);
 
-                    pixel_buffer[j * 64 + i * 8 + (7 - n)] = bit ? 0xFFFFFFFF : 0x0;
-                }
-            }
+            SDL_UpdateTexture(texture, NULL, pixel_buffer, 64 * sizeof(uint32_t));
+
+            SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
+            SDL_RenderClear(renderer);
+            SDL_RenderTexture(renderer, texture, NULL, NULL);
+            SDL_RenderPresent(renderer);
+
+            frame_accumulator = 0.0f;  // frame skipping
         }
-
-        SDL_UpdateTexture(texture, NULL, pixel_buffer, 64 * sizeof(uint32_t));
-
-        SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0x00);
-        SDL_RenderClear(renderer);
-        SDL_RenderTexture(renderer, texture, NULL, NULL);
-        SDL_RenderPresent(renderer);
     }
 
 quit:
@@ -170,3 +164,38 @@ quit:
     return 0;
 }
 
+int get_key_from_scancode(SDL_Scancode scancode) {
+    switch (scancode) {
+        case SDL_SCANCODE_X: return 0x0;
+        case SDL_SCANCODE_1: return 0x1;
+        case SDL_SCANCODE_2: return 0x2;
+        case SDL_SCANCODE_3: return 0x3;
+        case SDL_SCANCODE_Q: return 0x4;
+        case SDL_SCANCODE_W: return 0x5;
+        case SDL_SCANCODE_E: return 0x6;
+        case SDL_SCANCODE_A: return 0x7;
+        case SDL_SCANCODE_S: return 0x8;
+        case SDL_SCANCODE_D: return 0x9;
+        case SDL_SCANCODE_Z: return 0xA;
+        case SDL_SCANCODE_C: return 0xB;
+        case SDL_SCANCODE_4: return 0xC;
+        case SDL_SCANCODE_R: return 0xD;
+        case SDL_SCANCODE_F: return 0xE;
+        case SDL_SCANCODE_V: return 0xF;
+
+        default: return -1;
+    }
+}
+
+void update_pixel_buffer(Chip_8 *machine, uint32_t *pixel_buffer) {
+    for (int j = 0; j < 32; j++) {
+       for (int i = 0; i < 64 / 8; i++) {
+
+           for (int n = 7; n >= 0; n--) {
+               int bit = (machine->display[j * 8 + i] >> n) & 1;
+
+               pixel_buffer[j * 64 + i * 8 + (7 - n)] = bit ? 0xFFFFFFFF : 0x0;
+           }
+       }
+   }
+}
